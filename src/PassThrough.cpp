@@ -31,7 +31,7 @@ boost::program_options::options_description PassThrough::get_description()
     return description;
 }
 
-PassThrough::InputArgs parse_input_args(int argc, char** argv)
+PassThrough::InputArgs PassThrough::parse_input_args(int argc, char** argv)
 {
     namespace po = boost::program_options;
     po::variables_map variables_map;
