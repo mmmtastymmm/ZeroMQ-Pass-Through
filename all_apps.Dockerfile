@@ -38,6 +38,12 @@ RUN cd /packages/ &&\
  cmake -DCPPZMQ_BUILD_TESTS=OFF .. &&\
  make install -j $(nproc)
 
+RUN \
+    git clone https://github.com/catchorg/Catch2.git && \
+    cd Catch2 && \
+    cmake -Bbuild -H. -DBUILD_TESTING=OFF && \
+    cmake --build build/ --target install
+
 
 COPY . /project
 WORKDIR /project

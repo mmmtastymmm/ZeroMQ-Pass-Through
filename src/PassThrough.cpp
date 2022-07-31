@@ -1,3 +1,8 @@
+//
+// Created by mmmtastymmm on 7/31/22.
+//
+
+#include "PassThrough.h"
 #include <boost/log/core.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
@@ -7,6 +12,7 @@
 #include <utility>
 #include <zmq.hpp>
 #include <zmq_addon.hpp>
+#include "logging_abstraction.h"
 
 struct InputArgs
 {
@@ -84,38 +90,10 @@ InputArgs parse_input_args(int argc, char** argv)
             variables_map.at("log-level").as<decltype(InputArgs::log_level)>()};
 }
 
-void init_logging(const std::string& log_level)
-{
-    if (log_level == "trace") {
-        boost::log::core::get()->set_filter(boost::log::trivial::severity
-                                            >= boost::log::trivial::trace);
-    }
-    else if (log_level == "debug") {
-        boost::log::core::get()->set_filter(boost::log::trivial::severity
-                                            >= boost::log::trivial::debug);
-    }
-    else if (log_level == "warning") {
-        boost::log::core::get()->set_filter(boost::log::trivial::severity
-                                            >= boost::log::trivial::warning);
-    }
-    else if (log_level == "error") {
-        boost::log::core::get()->set_filter(boost::log::trivial::severity
-                                            >= boost::log::trivial::error);
-    }
-    else if (log_level == "fatal") {
-        boost::log::core::get()->set_filter(boost::log::trivial::severity
-                                            >= boost::log::trivial::fatal);
-    }
-    else {
-        boost::log::core::get()->set_filter(boost::log::trivial::severity
-                                            >= boost::log::trivial::info);
-    }
-}
-
-int main(int argc, char** argv)
+int PassThrough::main(int argc, char** argv)
 {
     auto input_args = parse_input_args(argc, argv);
-    init_logging(input_args.log_level);
+    logging_abstraction::init_logging(input_args.log_level);
     zmq::context_t zmq_context_sub;
     zmq::socket_t subscriber(zmq_context_sub, zmq::socket_type::sub);
     auto listen_address = std::string("tcp://" + input_args.subscribe_address + ":"
@@ -131,22 +109,27 @@ int main(int argc, char** argv)
     zmq::socket_t publisher(zmq_context_pub, zmq::socket_type::pub);
     auto publish_address = std::string("tcp://" + input_args.publish_address + ":"
                                        + input_args.publish_port);
-    if (input_args.enable_publish){
+    if (input_args.enable_publish) {
         publisher.bind(publish_address);
-        std::cout << "Now publishing to the following address: " << publish_address << std::endl;
+        std::cout << "Now publishing to the following address: " << publish_address
+                  << std::endl;
     }
-    else{
+    else {
         std::cout << "Not publishing." << std::endl;
     }
     for (decltype(input_args.message_count) i = 0; i < input_args.message_count; i++) {
         auto receive_messages = std::vector<zmq::message_t>{};
         const auto ret =
             zmq::recv_multipart(subscriber, std::back_inserter(receive_messages));
+        if (not ret) {
+            BOOST_LOG_TRIVIAL(warning) << "Encountered a corrupted message on iteration "
+                                       << i << ". Will ignore and continue.";
+        }
         BOOST_LOG_TRIVIAL(info) << "Multipart message number: " << i;
-        BOOST_LOG_TRIVIAL(info)
-            << "Message count: " << receive_messages.size();
-        if (receive_messages.size() > 1){
-            BOOST_LOG_TRIVIAL(info) << "If first message was a topic: " << receive_messages.at(0).to_string();
+        BOOST_LOG_TRIVIAL(info) << "Message count: " << receive_messages.size();
+        if (receive_messages.size() > 1) {
+            BOOST_LOG_TRIVIAL(info)
+                << "If first message was a topic: " << receive_messages.at(0).to_string();
         }
 
         auto all_messages = std::stringstream{};
@@ -155,21 +138,21 @@ int main(int argc, char** argv)
         }
         BOOST_LOG_TRIVIAL(debug) << "All messages: " << all_messages.str();
         // Always send the topic if there is one
-        if(not input_args.publish_topic.empty()) {
+        if (not input_args.publish_topic.empty()) {
             publisher.send(zmq::message_t(input_args.publish_topic),
                            zmq::send_flags::sndmore);
         }
-        // If there is only one message send that by itself, otherwise send everything but the previous topic
+        // If there is only one message send that by itself, otherwise send everything but
+        // the previous topic
         if (receive_messages.size() == 1) {
             publisher.send(std::move(receive_messages.at(0)), zmq::send_flags::none);
         }
-        else{
-            for(auto j = receive_messages.begin() + 1; j != receive_messages.end() - 1; j++){
-                publisher.send(*j,
-                               zmq::send_flags::sndmore);
+        else {
+            for (auto j = receive_messages.begin() + 1; j != receive_messages.end() - 1;
+                 j++) {
+                publisher.send(*j, zmq::send_flags::sndmore);
             }
-            publisher.send(*(receive_messages.end() - 1),
-                           zmq::send_flags::none);
+            publisher.send(*(receive_messages.end() - 1), zmq::send_flags::none);
         }
     }
 
