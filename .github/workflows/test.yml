@@ -28,9 +28,9 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Unit Tests
         run: |
-          find . -name CMakeLists.txt
           mkdir build
           cd build
-          cmake -G Ninja
+          cmake -G Ninja ..
           cmake --build . --target all
+          ./tests
   
