@@ -1,5 +1,5 @@
 # Runs the unit tests
-name: Test and Type Checking
+name: Unit Test
 
 # Controls when the workflow will run
 on:
