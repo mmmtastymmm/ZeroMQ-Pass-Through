@@ -1,7 +1,3 @@
-//
-// Created by mmmtastymmm on 7/31/22.
-//
-
 #include "PassThrough.h"
 #include <boost/log/core.hpp>
 #include <boost/log/expressions.hpp>
@@ -14,85 +10,60 @@
 #include <zmq_addon.hpp>
 #include "logging_abstraction.h"
 
-struct InputArgs
-{
-    std::string subscribe_address;
-    std::string subscribe_port;
-    std::string subscribe_topic;
-    std::string publish_address;
-    std::string publish_port;
-    std::string publish_topic;
-    long long message_count;
-    bool enable_publish;
-    std::string log_level;
-
-    InputArgs(std::string subscribeAddress,
-              std::string subscribePort,
-              std::string subscribeTopic,
-              std::string publishAddress,
-              std::string publishPort,
-              std::string publishTopic,
-              decltype(message_count) messageCount,
-              bool shouldPublish,
-              std::string logLevel)
-        : subscribe_address(std::move(subscribeAddress)),
-          subscribe_port(std::move(subscribePort)),
-          subscribe_topic(std::move(subscribeTopic)),
-          publish_address(std::move(publishAddress)),
-          publish_port(std::move(publishPort)),
-          publish_topic(std::move(publishTopic)),
-          message_count(messageCount),
-          enable_publish(shouldPublish),
-          log_level(std::move(logLevel))
-    {
-    }
-};
-
-boost::program_options::options_description get_description()
+boost::program_options::options_description PassThrough::get_description()
 {
     namespace po = boost::program_options;
     auto description = po::options_description("Allowed options");
     // clang-format off
     description.add_options()
-            ("help", "produce help message")
-            ("subscribe-address", po::value<std::string>()->default_value("127.0.0.1"), "Address to listen to.")
-            ("subscribe-port", po::value<std::string>()->default_value("9090"), "Port to listen to.")
-            ("subscribe-topic", po::value<std::string>()->default_value(""), "Subscribe topic to listen to.")
-            ("publish-address", po::value<std::string>()->default_value("127.0.0.1"), "Address to publish to.")
-            ("publish-port", po::value<std::string>()->default_value("9091"), "Port to publish to.")
-            ("publish-topic", po::value<std::string>()->default_value(""), "Publish topic to publish. ")
-            ("enable-publish", po::value<bool>()->default_value(true), "If the app should publish.")
-            ("message-count", po::value<decltype(InputArgs::message_count)>()->default_value(std::numeric_limits<decltype(InputArgs::message_count)>::max()),"Messages to read before exit")
-            ("log-level",  po::value<std::string>()->default_value("info"), "trace, debug, info, warning, error, or fatal should be used here.")
+            ("help,h", "produce help message")
+            ("subscribe-address", po::value<decltype(PassThrough::InputArgs::subscribe_address)>()->default_value("127.0.0.1"), "Address to listen to.")
+            ("subscribe-port", po::value<decltype(PassThrough::InputArgs::subscribe_port)>()->default_value("9090"), "Port to listen to.")
+            ("subscribe-topic", po::value<decltype(PassThrough::InputArgs::subscribe_topic)>()->default_value(""), "Subscribe topic to listen to.")
+            ("publish-address", po::value<decltype(PassThrough::InputArgs::publish_address)>()->default_value("127.0.0.1"), "Address to publish to.")
+            ("publish-port", po::value<decltype(PassThrough::InputArgs::publish_port)>()->default_value("9091"), "Port to publish to.")
+            ("publish-topic", po::value<decltype(PassThrough::InputArgs::publish_topic)>()->default_value(""), "Publish topic to publish. ")
+            ("enable-publish", po::value<decltype(PassThrough::InputArgs::enable_publish)>()->default_value(true), "If the app should publish.")
+            ("message-count", po::value<decltype(PassThrough::InputArgs::message_count)>()->default_value(std::numeric_limits<decltype(PassThrough::InputArgs::message_count)>::max()),"Messages to read before exit")
+            ("log-level",  po::value<decltype(PassThrough::InputArgs::log_level)>()->default_value("info"), "trace, debug, info, warning, error, or fatal should be used here.")
              ;
     // clang-format on
     return description;
 }
 
-InputArgs parse_input_args(int argc, char** argv)
+PassThrough::InputArgs parse_input_args(int argc, char** argv)
 {
     namespace po = boost::program_options;
     po::variables_map variables_map;
-    const auto description = get_description();
+    const auto description = PassThrough::get_description();
     po::store(po::parse_command_line(argc, argv, description), variables_map);
     if (variables_map.count("help")) {
         std::cout << description << std::endl;
         std::exit(1);
     }
-    return {variables_map.at("subscribe-address").as<std::string>(),
-            variables_map.at("subscribe-port").as<std::string>(),
-            variables_map.at("subscribe-topic").as<std::string>(),
-            variables_map.at("publish-address").as<std::string>(),
-            variables_map.at("publish-port").as<std::string>(),
-            variables_map.at("publish-topic").as<std::string>(),
-            variables_map.at("message-count").as<decltype(InputArgs::message_count)>(),
-            variables_map.at("enable-publish").as<decltype(InputArgs::enable_publish)>(),
-            variables_map.at("log-level").as<decltype(InputArgs::log_level)>()};
+    return {
+        variables_map.at("subscribe-address")
+            .as<decltype(PassThrough::InputArgs::subscribe_address)>(),
+        variables_map.at("subscribe-port")
+            .as<decltype(PassThrough::InputArgs::subscribe_port)>(),
+        variables_map.at("subscribe-topic")
+            .as<decltype(PassThrough::InputArgs::subscribe_topic)>(),
+        variables_map.at("publish-address")
+            .as<decltype(PassThrough::InputArgs::publish_address)>(),
+        variables_map.at("publish-port")
+            .as<decltype(PassThrough::InputArgs::publish_port)>(),
+        variables_map.at("publish-topic")
+            .as<decltype(PassThrough::InputArgs::publish_topic)>(),
+        variables_map.at("message-count")
+            .as<decltype(PassThrough::InputArgs::message_count)>(),
+        variables_map.at("enable-publish")
+            .as<decltype(PassThrough::InputArgs::enable_publish)>(),
+        variables_map.at("log-level").as<decltype(PassThrough::InputArgs::log_level)>()};
 }
 
 int PassThrough::main(int argc, char** argv)
 {
-    auto input_args = parse_input_args(argc, argv);
+    auto input_args = PassThrough::parse_input_args(argc, argv);
     logging_abstraction::init_logging(input_args.log_level);
     zmq::context_t zmq_context_sub;
     zmq::socket_t subscriber(zmq_context_sub, zmq::socket_type::sub);
