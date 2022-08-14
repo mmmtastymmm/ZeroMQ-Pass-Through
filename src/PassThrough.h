@@ -2,6 +2,7 @@
 #define ZMQ_PASS_THROUGH_PASSTHROUGH_H
 #include <string>
 #include <boost/program_options/options_description.hpp>
+#include <zmq.hpp>
 
 class PassThrough
 {
@@ -39,9 +40,33 @@ public:
         {
         }
     };
+    /// Runs the program given the command line input
+    /// \param argc the number of command line args passed
+    /// \param argv the values of the command line args passed
+    /// \return 0 if successful, something else if an error occurred.
     static int main(int argc, char** argv);
+
+    /// Gets the boost program description (what command line args are accepted)
+    /// \return The boost program description
     static boost::program_options::options_description get_description();
+
+    /// Parse the input args and return the input args class
+    /// \param argc the number of command line args passed
+    /// \param argv the values of the command line args passed
+    /// \return An InputArgs instance, populated from the command line args and defaults
+    /// if required
     static PassThrough::InputArgs parse_input_args(int argc, char** argv);
+
+    /// Processes a message
+    /// \param input_args the input args
+    /// \param subscriber The subscriber socket
+    /// \param publisher The publisher socket
+    /// \param i The iteration
+    /// \return true if the message was received in a healthy state, false if not
+    static bool process_message(const InputArgs& input_args,
+                                zmq::socket_t& subscriber,
+                                zmq::socket_t& publisher,
+                                long long int i);
 };
 
 #endif // ZMQ_PASS_THROUGH_PASSTHROUGH_H

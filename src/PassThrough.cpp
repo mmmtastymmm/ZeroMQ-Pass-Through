@@ -17,10 +17,10 @@ boost::program_options::options_description PassThrough::get_description()
     // clang-format off
     description.add_options()
             ("help,h", "produce help message")
-            ("subscribe-address", po::value<decltype(PassThrough::InputArgs::subscribe_address)>()->default_value("127.0.0.1"), "Address to listen to.")
+            ("subscribe-address", po::value<decltype(PassThrough::InputArgs::subscribe_address)>()->default_value("0.0.0.0"), "Address to listen to.")
             ("subscribe-port", po::value<decltype(PassThrough::InputArgs::subscribe_port)>()->default_value("9090"), "Port to listen to.")
             ("subscribe-topic", po::value<decltype(PassThrough::InputArgs::subscribe_topic)>()->default_value(""), "Subscribe topic to listen to.")
-            ("publish-address", po::value<decltype(PassThrough::InputArgs::publish_address)>()->default_value("127.0.0.1"), "Address to publish to.")
+            ("publish-address", po::value<decltype(PassThrough::InputArgs::publish_address)>()->default_value("0.0.0.0"), "Address to publish to.")
             ("publish-port", po::value<decltype(PassThrough::InputArgs::publish_port)>()->default_value("9091"), "Port to publish to.")
             ("publish-topic", po::value<decltype(PassThrough::InputArgs::publish_topic)>()->default_value(""), "Publish topic to publish. ")
             ("enable-publish", po::value<decltype(PassThrough::InputArgs::enable_publish)>()->default_value(true), "If the app should publish.")
@@ -63,6 +63,7 @@ PassThrough::InputArgs PassThrough::parse_input_args(int argc, char** argv)
 
 int PassThrough::main(int argc, char** argv)
 {
+    // Set up the subscriber
     auto input_args = PassThrough::parse_input_args(argc, argv);
     logging_abstraction::init_logging(input_args.log_level);
     zmq::context_t zmq_context_sub;
@@ -76,57 +77,76 @@ int PassThrough::main(int argc, char** argv)
     std::cout << "Will receive this many messages: " << input_args.message_count
               << std::endl;
 
+    // Set up the publisher
     zmq::context_t zmq_context_pub;
     zmq::socket_t publisher(zmq_context_pub, zmq::socket_type::pub);
     auto publish_address = std::string("tcp://" + input_args.publish_address + ":"
                                        + input_args.publish_port);
     if (input_args.enable_publish) {
         publisher.bind(publish_address);
-        std::cout << "Now publishing to the following address: " << publish_address
+        std::cout << "Publishing to the following address: " << publish_address
                   << std::endl;
     }
     else {
         std::cout << "Not publishing." << std::endl;
     }
-    for (decltype(input_args.message_count) i = 0; i < input_args.message_count; i++) {
-        auto receive_messages = std::vector<zmq::message_t>{};
-        const auto ret =
-            zmq::recv_multipart(subscriber, std::back_inserter(receive_messages));
-        if (not ret) {
-            BOOST_LOG_TRIVIAL(warning) << "Encountered a corrupted message on iteration "
-                                       << i << ". Will ignore and continue.";
-        }
-        BOOST_LOG_TRIVIAL(info) << "Multipart message number: " << i;
-        BOOST_LOG_TRIVIAL(info) << "Message count: " << receive_messages.size();
-        if (receive_messages.size() > 1) {
-            BOOST_LOG_TRIVIAL(info)
-                << "If first message was a topic: " << receive_messages.at(0).to_string();
-        }
 
-        auto all_messages = std::stringstream{};
-        for (const auto& message : receive_messages) {
-            all_messages << message << ", ";
-        }
-        BOOST_LOG_TRIVIAL(debug) << "All messages: " << all_messages.str();
-        // Always send the topic if there is one
-        if (not input_args.publish_topic.empty()) {
-            publisher.send(zmq::message_t(input_args.publish_topic),
-                           zmq::send_flags::sndmore);
-        }
-        // If there is only one message send that by itself, otherwise send everything but
-        // the previous topic
-        if (receive_messages.size() == 1) {
-            publisher.send(std::move(receive_messages.at(0)), zmq::send_flags::none);
-        }
-        else {
-            for (auto j = receive_messages.begin() + 1; j != receive_messages.end() - 1;
+    // Receive the requested number of messages and terminate
+    for (decltype(input_args.message_count) i = 0; i < input_args.message_count; i++) {
+        process_message(input_args, subscriber, publisher, i);
+    }
+
+    std::cout << "Done!" << std::endl;
+    return 0;
+}
+
+bool PassThrough::process_message(const PassThrough::InputArgs& input_args,
+                                  zmq::socket_t& subscriber,
+                                  zmq::socket_t& publisher,
+                                  long long int i)
+{
+    auto receive_messages = std::vector<zmq::message_t>{};
+    const auto ret =
+        zmq::recv_multipart(subscriber, std::back_inserter(receive_messages));
+    if (not ret) {
+        BOOST_LOG_TRIVIAL(warning) << "Encountered a corrupted message on iteration " << i
+                                   << ". Will ignore and continue.";
+        return false;
+    }
+    std::stringstream info_log;
+    info_log << "Multipart message number: " << i
+             << ", Message count: " << receive_messages.size() << ", ";
+    if (receive_messages.size() > 1) {
+        info_log << "If first message was a topic: " << receive_messages.at(0).to_string()
+                 << ", ";
+    }
+    auto size = decltype(receive_messages.at(0).size())(0);
+    for (const auto& message : receive_messages) {
+        size += message.size();
+    }
+    info_log << "Total size: " << size;
+    BOOST_LOG_TRIVIAL(info) << info_log.str();
+    auto all_messages = std::stringstream{};
+    for (const auto& message : receive_messages) {
+        all_messages << message << ", ";
+    }
+    BOOST_LOG_TRIVIAL(debug) << "All messages: " << all_messages.str();
+    // Always send the topic if there is one
+    if (not input_args.publish_topic.empty()) {
+        publisher.send(zmq::message_t(input_args.publish_topic),
+                       zmq::send_flags::sndmore);
+    }
+    // If there is only one message send that by itself, otherwise send everything but
+    // the previous topic
+    if (receive_messages.size() == 1) {
+        publisher.send(std::move(receive_messages.at(0)), zmq::send_flags::none);
+    }
+    else {
+        for (auto j = receive_messages.begin() + 1; j != receive_messages.end() - 1;
                  j++) {
                 publisher.send(*j, zmq::send_flags::sndmore);
             }
             publisher.send(*(receive_messages.end() - 1), zmq::send_flags::none);
         }
-    }
-
-    std::cout << "Done!" << std::endl;
-    return 0;
+        return true;
 }

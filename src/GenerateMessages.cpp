@@ -51,7 +51,7 @@ int GenerateMessages::main(int argc, char** argv)
     zmq::socket_t socket(zmq_context, zmq::socket_type::pub);
 
     auto address = "tcp://" + input_args.address + ":" + input_args.port;
-    std::cout << "Now listening on: " << address << std::endl;
+    std::cout << "Publishing on: " << address << std::endl;
     socket.bind(address);
     std::cout << "Will send this many messages: " << input_args.message_count
               << std::endl;
@@ -59,8 +59,8 @@ int GenerateMessages::main(int argc, char** argv)
         std::this_thread::sleep_for(std::chrono::seconds(1));
         auto message =
             zmq::message_t(std::string("Hello world " + std::to_string(i + 1)));
+        std::cout << "Sending message " << i << ": " << message << std::endl;
         socket.send(message, zmq::send_flags::none);
-        std::cout << "Sent message " << i << std::endl;
     }
 
     std::cout << "Done!" << std::endl;
