@@ -39,5 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: docker-build
-        run: "docker image ls"
+        run: |
+          docker build -f all_apps.Dockerfile -t sub-pub-tests --target=release-tests .
+          docker run --rm -it sub-pub-tests
   
