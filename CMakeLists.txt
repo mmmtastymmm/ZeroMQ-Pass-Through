@@ -5,12 +5,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
 find_package(cppzmq REQUIRED)
+set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost COMPONENTS program_options log REQUIRED)
 find_package(Catch2 3 REQUIRED)
 
-add_library(subscriber_lib src/PassThrough.cpp src/PassThrough.h)
-add_library(publisher_lib src/GenerateMessages.cpp src/GenerateMessages.h)
-add_library(common_lib src/logging_abstraction.cpp src/logging_abstraction.h)
+add_library(subscriber_lib STATIC src/PassThrough.cpp src/PassThrough.h)
+add_library(publisher_lib STATIC src/GenerateMessages.cpp src/GenerateMessages.h)
+add_library(common_lib STATIC src/logging_abstraction.cpp src/logging_abstraction.h)
 
 target_link_libraries(subscriber_lib common_lib ${Boost_LIBRARIES})
 target_link_libraries(publisher_lib common_lib ${Boost_LIBRARIES})
