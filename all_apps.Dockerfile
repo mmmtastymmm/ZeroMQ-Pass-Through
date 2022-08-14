@@ -37,7 +37,7 @@ RUN cd /packages/ &&\
 RUN \
     git clone --depth 1 https://github.com/catchorg/Catch2.git && \
     cd Catch2 && \
-    cmake -G Ninja -Bbuild -H. -DBUILD_TESTING=OFF && \
+    cmake -Bbuild -H. -DBUILD_TESTING=OFF && \
     cmake --build build/ --target install && \
     cd .. && \
     rm -rf Catch2
