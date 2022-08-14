@@ -33,4 +33,11 @@ jobs:
           cmake -G Ninja ..
           cmake --build . --target all
           ./tests
+  docker_build:
+    runs-on: ubuntu-latest
+    container: "docker:dind"
+    steps:
+      - uses: actions/checkout@v2
+      - name: docker-build
+        run: "docker image ls"
   
