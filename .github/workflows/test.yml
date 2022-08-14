@@ -41,5 +41,5 @@ jobs:
       - name: docker-build
         run: |
           docker build -f all_apps.Dockerfile -t sub-pub-tests --target=release-tests .
-          docker run --rm -it sub-pub-tests
+          docker run --rm -t sub-pub-tests
   
