@@ -2,5 +2,5 @@
 
 TEST_CASE("Tests are able to build", "[catch_build]")
 {
-    REQUIRE(true);
+    REQUIRE(false);
 }
