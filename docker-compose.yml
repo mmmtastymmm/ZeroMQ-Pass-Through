@@ -1,0 +1,39 @@
+services:
+  #############
+  # SonarQube #
+  #############
+  pub:
+    image: example-pub:latest
+    container_name: pub
+    hostname: 'pub'
+    networks:
+      - pub-sub
+    command: ["--ip", "0.0.0.0", "--port", "9000"]
+
+  sub1:
+    image: example-sub-pub:latest
+    container_name: sub1
+    hostname: sub1
+    networks:
+      - pub-sub
+    command: ["--subscribe-address", "pub", "--subscribe-port", "9000", "--publish-address", "0.0.0.0", "--publish-port", "9000", "--publish-topic", "sub1_topic"]
+
+  sub2:
+    image: example-sub-pub:latest
+    container_name: sub2
+    hostname: sub2
+    command: ["--subscribe-address", "sub1", "--subscribe-port", "9000", "--subscribe-topic", "sub1_topic", "--publish-port", "9999", "--publish-address", "0.0.0.0", "--log-level", "debug"]
+    networks:
+      - pub-sub
+
+  sub3:
+    image: example-sub-pub:latest
+    container_name: sub3
+    hostname: sub3
+    command: [ "--subscribe-address", "sub2", "--subscribe-port", "9999"]
+    networks:
+      - pub-sub
+
+networks:
+  pub-sub:
+    name: pub-sub

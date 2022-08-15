@@ -1,0 +1,45 @@
+# Runs the unit tests
+name: Unit Test
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # Test with the unit tests
+  build_and_unit_tests:
+    # The type of runner that the job will run on (has to be ubuntu for docker)
+    runs-on: ubuntu-latest
+    # The image tag to use for the container
+    container: mmmtastymmm/zeromq-pass-through-toolchain
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      # Runs a set of commands using the runners shell
+      - name: Unit Tests
+        run: |
+          mkdir build
+          cd build
+          cmake -G Ninja ..
+          cmake --build . --target all
+          ./tests
+  docker_build:
+    runs-on: ubuntu-latest
+    container: "docker:dind"
+    steps:
+      - uses: actions/checkout@v2
+      - name: docker-build
+        run: |
+          docker build -f all_apps.Dockerfile -t sub-pub-tests --target=release-tests .
+          docker run --rm -t sub-pub-tests
+  
