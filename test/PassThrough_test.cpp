@@ -39,7 +39,7 @@ TEST_CASE("Empty Print", "[DataResults]")
     auto ss = std::stringstream();
     ss << empty;
     auto output_string = ss.str();
-    CHECK(output_string == "message_count: 0, total_bytes: 0 B, average_size: 0 B");
+    CHECK(output_string == "message_count: 0, total_size: 0 B, average_size: 0 B");
 }
 
 TEST_CASE("1KB Print", "[DataResults]")
@@ -49,7 +49,7 @@ TEST_CASE("1KB Print", "[DataResults]")
     auto ss = std::stringstream();
     ss << full;
     auto output_string = ss.str();
-    CHECK(output_string == "message_count: 1, total_bytes: 8 Kib, average_size: 8 Kib");
+    CHECK(output_string == "message_count: 1, total_size: 8 Kib, average_size: 8 Kib");
 }
 
 TEST_CASE("1GB Print", "[DataResults]")
@@ -59,5 +59,5 @@ TEST_CASE("1GB Print", "[DataResults]")
     auto ss = std::stringstream();
     ss << full;
     auto output_string = ss.str();
-    CHECK(output_string == "message_count: 1, total_bytes: 8 Gib, average_size: 8 Gib");
+    CHECK(output_string == "message_count: 1, total_size: 8 Gib, average_size: 8 Gib");
 }
