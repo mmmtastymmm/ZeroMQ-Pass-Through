@@ -71,9 +71,9 @@ int PassThrough::main(int argc, char** argv)
     auto listen_address = std::string("tcp://" + input_args.subscribe_address + ":"
                                       + input_args.subscribe_port);
 
+    std::cout << "Subscribing to the following address: " << listen_address << std::endl;
     subscriber.connect(listen_address);
     subscriber.set(zmq::sockopt::subscribe, input_args.subscribe_topic);
-    std::cout << "Subscribing to the following address: " << listen_address << std::endl;
     std::cout << "Will receive this many messages: " << input_args.message_count
               << std::endl;
 
@@ -83,9 +83,9 @@ int PassThrough::main(int argc, char** argv)
     auto publish_address = std::string("tcp://" + input_args.publish_address + ":"
                                        + input_args.publish_port);
     if (input_args.enable_publish) {
-        publisher.bind(publish_address);
         std::cout << "Publishing to the following address: " << publish_address
                   << std::endl;
+        publisher.bind(publish_address);
     }
     else {
         std::cout << "Not publishing." << std::endl;
