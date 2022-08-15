@@ -32,3 +32,32 @@ TEST_CASE("Test data after multiple appends", "[DataResults]")
     CHECK(data.average_size == 75.0 * boost::units::information::byte);
     CHECK(data.total_bytes == 150.0 * boost::units::information::byte);
 }
+
+TEST_CASE("Empty Print", "[DataResults]")
+{
+    auto empty = PassThrough::DataResults();
+    auto ss = std::stringstream();
+    ss << empty;
+    auto output_string = ss.str();
+    CHECK(output_string == "message_count: 0, total_bytes: 0 B, average_size: 0 B");
+}
+
+TEST_CASE("1KB Print", "[DataResults]")
+{
+    auto full = PassThrough::DataResults();
+    full.update(1024);
+    auto ss = std::stringstream();
+    ss << full;
+    auto output_string = ss.str();
+    CHECK(output_string == "message_count: 1, total_bytes: 8 Kib, average_size: 8 Kib");
+}
+
+TEST_CASE("1GB Print", "[DataResults]")
+{
+    auto full = PassThrough::DataResults();
+    full.update(1024 * 1024 * 1024);
+    auto ss = std::stringstream();
+    ss << full;
+    auto output_string = ss.str();
+    CHECK(output_string == "message_count: 1, total_bytes: 8 Gib, average_size: 8 Gib");
+}

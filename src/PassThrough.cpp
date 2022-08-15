@@ -4,7 +4,6 @@
 #include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
 #include <boost/units/quantity.hpp>
-#include <boost/units/io.hpp>
 #include <boost/units/systems/information.hpp>
 #include <iostream>
 #include <limits>
@@ -95,19 +94,23 @@ int PassThrough::main(int argc, char** argv)
     }
 
     // Receive the requested number of messages and terminate
-    std::unordered_map<std::string, unsigned long long int> data_by_topic;
+    std::unordered_map<std::string, PassThrough::DataResults> data_by_topic;
     for (decltype(input_args.message_count) i = 0; i < input_args.message_count; i++) {
-        process_message(input_args, subscriber, publisher, i);
+        process_message(input_args, subscriber, publisher, i, data_by_topic);
     }
-
+    // Print out the stats for each topic
+    for (auto& topic : data_by_topic) {
+        std::cout << "Topic: " << topic.first << ", Data: " << topic.second << std::endl;
+    }
     std::cout << "Done!" << std::endl;
     return 0;
 }
 
-bool PassThrough::process_message(const PassThrough::InputArgs& input_args,
+bool PassThrough::process_message(const InputArgs& input_args,
                                   zmq::socket_t& subscriber,
                                   zmq::socket_t& publisher,
-                                  long long int i)
+                                  long long int i,
+                                  std::unordered_map<std::string, DataResults>& map)
 {
     auto receive_messages = std::vector<zmq::message_t>{};
     const auto ret =
@@ -120,16 +123,21 @@ bool PassThrough::process_message(const PassThrough::InputArgs& input_args,
     std::stringstream info_log;
     info_log << "Multipart message number: " << i
              << ", Message count: " << receive_messages.size() << ", ";
+    auto topic = std::string("");
     if (receive_messages.size() > 1) {
         info_log << "If first message was a topic: " << receive_messages.at(0).to_string()
                  << ", ";
+        topic = receive_messages.at(0).to_string();
     }
-    auto size = decltype(receive_messages.at(0).size())(0);
+    auto total_message_size = decltype(receive_messages.at(0).size())(0);
     for (const auto& message : receive_messages) {
-        size += message.size();
+        total_message_size += message.size();
     }
-    info_log << "Total size: " << size;
+    info_log << "Total total_message_size: " << total_message_size;
     BOOST_LOG_TRIVIAL(info) << info_log.str();
+    // Update the topic map for the whole run
+    map.try_emplace(topic, PassThrough::DataResults());
+    map.at(topic).update(total_message_size);
     auto all_messages = std::stringstream{};
     for (const auto& message : receive_messages) {
         all_messages << message << ", ";
@@ -169,4 +177,11 @@ void PassThrough::DataResults::update(size_t new_message_size)
             * (static_cast<double>(new_message_size) * boost::units::information::bytes
                - average_size);
     }
+}
+std::ostream& operator<<(std::ostream& os, const PassThrough::DataResults& results)
+{
+    os << "message_count: " << results.message_count << boost::units::binary_prefix
+       << ", total_bytes: " << results.total_bytes
+       << ", average_size: " << results.average_size << boost::units::symbol_format;
+    return os;
 }

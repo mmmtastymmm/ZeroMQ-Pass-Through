@@ -6,6 +6,7 @@
 #include <boost/units/io.hpp>
 #include <boost/units/systems/information.hpp>
 #include <zmq.hpp>
+#include <ostream>
 
 class PassThrough
 {
@@ -46,6 +47,7 @@ public:
 
     struct DataResults
     {
+        friend std::ostream& operator<<(std::ostream& os, const DataResults& results);
         // a quantity of information (default in units of total_bytes)
         boost::units::quantity<boost::units::information::info> total_bytes{
             0.0 * boost::units::information::byte};
@@ -80,7 +82,8 @@ public:
     static bool process_message(const InputArgs& input_args,
                                 zmq::socket_t& subscriber,
                                 zmq::socket_t& publisher,
-                                long long int i);
+                                long long int i,
+                                std::unordered_map<std::string, DataResults>& map);
 };
 
 #endif // ZMQ_PASS_THROUGH_PASSTHROUGH_H
