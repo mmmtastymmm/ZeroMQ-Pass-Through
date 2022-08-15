@@ -68,8 +68,8 @@ int PassThrough::main(int argc, char** argv)
     // Set up the subscriber
     auto input_args = PassThrough::parse_input_args(argc, argv);
     logging_abstraction::init_logging(input_args.log_level);
-    zmq::context_t zmq_context_sub;
-    zmq::socket_t subscriber(zmq_context_sub, zmq::socket_type::sub);
+    zmq::context_t zmq_context;
+    zmq::socket_t subscriber(zmq_context, zmq::socket_type::sub);
     auto listen_address = std::string("tcp://" + input_args.subscribe_address + ":"
                                       + input_args.subscribe_port);
 
@@ -80,8 +80,7 @@ int PassThrough::main(int argc, char** argv)
               << std::endl;
 
     // Set up the publisher
-    zmq::context_t zmq_context_pub;
-    zmq::socket_t publisher(zmq_context_pub, zmq::socket_type::pub);
+    zmq::socket_t publisher(zmq_context, zmq::socket_type::pub);
     auto publish_address = std::string("tcp://" + input_args.publish_address + ":"
                                        + input_args.publish_port);
     if (input_args.enable_publish) {
