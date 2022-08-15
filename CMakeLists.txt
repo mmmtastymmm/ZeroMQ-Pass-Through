@@ -20,8 +20,8 @@ add_executable(zmq_publisher src/generate_messages_main.cpp)
 
 add_executable(zmq_subscriber src/pass_through_main.cpp src/logging_abstraction.cpp src/logging_abstraction.h)
 
-add_executable(tests test/test.cpp)
-target_link_libraries(tests PRIVATE Catch2::Catch2WithMain PUBLIC)
+add_executable(tests test/test.cpp test/PassThrough_test.cpp)
+target_link_libraries(tests PRIVATE Catch2::Catch2WithMain PUBLIC subscriber_lib publisher_lib cppzmq)
 
 target_link_libraries(zmq_publisher publisher_lib cppzmq)
 target_link_libraries(zmq_subscriber subscriber_lib cppzmq)

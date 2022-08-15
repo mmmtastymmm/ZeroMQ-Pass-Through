@@ -3,6 +3,9 @@
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
+#include <boost/units/quantity.hpp>
+#include <boost/units/io.hpp>
+#include <boost/units/systems/information.hpp>
 #include <iostream>
 #include <limits>
 #include <utility>
@@ -92,6 +95,7 @@ int PassThrough::main(int argc, char** argv)
     }
 
     // Receive the requested number of messages and terminate
+    std::unordered_map<std::string, unsigned long long int> data_by_topic;
     for (decltype(input_args.message_count) i = 0; i < input_args.message_count; i++) {
         process_message(input_args, subscriber, publisher, i);
     }
@@ -143,10 +147,26 @@ bool PassThrough::process_message(const PassThrough::InputArgs& input_args,
     }
     else {
         for (auto j = receive_messages.begin() + 1; j != receive_messages.end() - 1;
-                 j++) {
-                publisher.send(*j, zmq::send_flags::sndmore);
-            }
-            publisher.send(*(receive_messages.end() - 1), zmq::send_flags::none);
+             j++) {
+            publisher.send(*j, zmq::send_flags::sndmore);
         }
-        return true;
+        publisher.send(*(receive_messages.end() - 1), zmq::send_flags::none);
+    }
+    return true;
+}
+void PassThrough::DataResults::update(size_t new_message_size)
+{
+    message_count += 1;
+    total_bytes +=
+        static_cast<double>(new_message_size) * boost::units::information::bytes;
+    if (message_count == 1) {
+        average_size =
+            static_cast<double>(new_message_size) * boost::units::information::bytes;
+    }
+    else {
+        average_size +=
+            1.0 / static_cast<double>(message_count)
+            * (static_cast<double>(new_message_size) * boost::units::information::bytes
+               - average_size);
+    }
 }

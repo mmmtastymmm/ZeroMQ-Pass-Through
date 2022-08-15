@@ -2,6 +2,9 @@
 #define ZMQ_PASS_THROUGH_PASSTHROUGH_H
 #include <string>
 #include <boost/program_options/options_description.hpp>
+#include <boost/units/quantity.hpp>
+#include <boost/units/io.hpp>
+#include <boost/units/systems/information.hpp>
 #include <zmq.hpp>
 
 class PassThrough
@@ -40,6 +43,17 @@ public:
         {
         }
     };
+
+    struct DataResults
+    {
+        // a quantity of information (default in units of total_bytes)
+        boost::units::quantity<boost::units::information::info> total_bytes{
+            0.0 * boost::units::information::byte};
+        size_t message_count{0};
+        decltype(total_bytes) average_size{0.0 * boost::units::information::byte};
+        void update(size_t new_message_size);
+    };
+
     /// Runs the program given the command line input
     /// \param argc the number of command line args passed
     /// \param argv the values of the command line args passed
