@@ -100,7 +100,8 @@ int PassThrough::main(int argc, char** argv)
     }
     // Print out the stats for each topic
     for (auto& topic : data_by_topic) {
-        std::cout << "Topic: " << topic.first << ", Data: " << topic.second << std::endl;
+        std::cout << "Topic: " << topic.first << ", Message Data: " << topic.second
+                  << std::endl;
     }
     std::cout << "Done!" << std::endl;
     return 0;
@@ -125,8 +126,8 @@ bool PassThrough::process_message(const InputArgs& input_args,
              << ", Message count: " << receive_messages.size() << ", ";
     auto topic = std::string("");
     if (receive_messages.size() > 1) {
-        info_log << "If first message was a topic: " << receive_messages.at(0).to_string()
-                 << ", ";
+        info_log << "First message (topic probably): "
+                 << receive_messages.at(0).to_string() << ", ";
         topic = receive_messages.at(0).to_string();
     }
     auto total_message_size = decltype(receive_messages.at(0).size())(0);
@@ -181,7 +182,7 @@ void PassThrough::DataResults::update(size_t new_message_size)
 std::ostream& operator<<(std::ostream& os, const PassThrough::DataResults& results)
 {
     os << "message_count: " << results.message_count << boost::units::binary_prefix
-       << ", total_bytes: " << results.total_bytes
+       << ", total_size: " << results.total_bytes
        << ", average_size: " << results.average_size << boost::units::symbol_format;
     return os;
 }

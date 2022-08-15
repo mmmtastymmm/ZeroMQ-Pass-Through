@@ -13,12 +13,14 @@ public:
     {
         std::string address;
         std::string port;
+        std::string topic;
         long long message_count;
         std::string message_text;
         bool append_counter{};
 
         InputArgs(std::string address,
                   std::string port,
+                  std::string topic,
                   long long int messageCount,
                   std::string messageText,
                   bool appendCounter);
